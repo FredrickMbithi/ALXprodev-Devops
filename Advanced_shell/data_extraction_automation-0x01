@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Get the name
+NAME=$(jq -r '.name' data.json | sed 's/.*/\u&/')
+
+# Get the type (first type only)
+TYPE=$(jq -r '.types[0].type.name' data.json | sed 's/.*/\u&/')
+
+# Get weight (divide by 10 to get kg)
+WEIGHT=$(jq -r '.weight' data.json | awk '{print $1/10}')
+
+# Get height (divide by 10 to get meters)
+HEIGHT=$(jq -r '.height' data.json | awk '{print $1/10}')
+
+# Print the nice sentence
+echo "$NAME is of type $TYPE, weighs ${WEIGHT}kg, and is ${HEIGHT}m tall."
