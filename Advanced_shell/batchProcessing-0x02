@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Create a folder to store all Pokémon data
+# -p means "create if it doesn't exist, ignore if it does"
+mkdir -p pokemon_data
+
+# List of Pokémon we want to fetch
+# This is an ARRAY (like a shopping list)
+POKEMON_LIST=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+
+# Loop through each Pokémon in the list
+# "${POKEMON_LIST[@]}" means "all items in the list"
+for POKEMON in "${POKEMON_LIST[@]}"; do
+    
+    # Make sure name is lowercase (API requires this)
+    POKEMON=$(echo "$POKEMON" | tr '[:upper:]' '[:lower:]')
+    
+    # Tell user what we're doing
+    echo "Fetching data for $POKEMON..."
+    
+    # Build the API URL
+    URL="https://pokeapi.co/api/v2/pokemon/$POKEMON"
+    
+    # Output file path
+    OUTPUT_FILE="pokemon_data/${POKEMON}.json"
+    
+    # Fetch the data using curl
+    # -s = silent (no progress bar)
+    # -o = output to file
+    curl -s "$URL" -o "$OUTPUT_FILE"
+    
+    # Check if the request was successful
+    if [ $? -eq 0 ] && [ -s "$OUTPUT_FILE" ]; then
+        echo "Saved data to $OUTPUT_FILE ✅"
+    else
+        echo "Failed to fetch $POKEMON ❌"
+        echo "Error fetching $POKEMON at $(date)" >> pokemon_data/errors.txt
+    fi
+    
+    # Wait 1 second before next request (be nice to the API!)
+    # This prevents rate limiting
+    sleep 1
+    
+done
+
+echo ""
+echo "All done! Fetched ${#POKEMON_LIST[@]} Pokémon! 🎉"
