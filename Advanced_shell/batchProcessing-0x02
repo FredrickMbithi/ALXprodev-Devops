@@ -1,47 +1,55 @@
 #!/bin/bash
 
-# Create a folder to store all Pokémon data
-# -p means "create if it doesn't exist, ignore if it does"
+# Create folder for Pokémon data
 mkdir -p pokemon_data
 
-# List of Pokémon we want to fetch
-# This is an ARRAY (like a shopping list)
+# List of Pokémon to fetch
 POKEMON_LIST=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 
-# Loop through each Pokémon in the list
-# "${POKEMON_LIST[@]}" means "all items in the list"
+# Function to fetch one Pokémon with retry logic
+fetch_pokemon() {
+    local pokemon=$1
+    local max_retries=3
+    local retry=0
+    
+    # Convert to lowercase
+    pokemon=$(echo "$pokemon" | tr '[:upper:]' '[:lower:]')
+    
+    echo "Fetching data for $pokemon..."
+    
+    # Build URL and output path
+    local url="https://pokeapi.co/api/v2/pokemon/$pokemon"
+    local output="pokemon_data/${pokemon}.json"
+    
+    # Retry loop (max 3 attempts)
+    while [ $retry -lt $max_retries ]; do
+        # Attempt to fetch data
+        curl -s "$url" -o "$output"
+        
+        # Check if successful and file is not empty
+        if [ $? -eq 0 ] && [ -s "$output" ]; then
+            echo "Saved data to $output ✅"
+            return 0
+        else
+            retry=$((retry + 1))
+            if [ $retry -lt $max_retries ]; then
+                echo "Retry $retry/$max_retries for $pokemon..."
+                sleep 2
+            fi
+        fi
+    done
+    
+    # If we get here, all retries failed
+    echo "Error: Failed to fetch $pokemon after $max_retries attempts" | tee -a pokemon_data/errors.txt
+    echo "Failed to fetch $pokemon ❌"
+    return 1
+}
+
+# Main loop - fetch each Pokémon sequentially
 for POKEMON in "${POKEMON_LIST[@]}"; do
-    
-    # Make sure name is lowercase (API requires this)
-    POKEMON=$(echo "$POKEMON" | tr '[:upper:]' '[:lower:]')
-    
-    # Tell user what we're doing
-    echo "Fetching data for $POKEMON..."
-    
-    # Build the API URL
-    URL="https://pokeapi.co/api/v2/pokemon/$POKEMON"
-    
-    # Output file path
-    OUTPUT_FILE="pokemon_data/${POKEMON}.json"
-    
-    # Fetch the data using curl
-    # -s = silent (no progress bar)
-    # -o = output to file
-    curl -s "$URL" -o "$OUTPUT_FILE"
-    
-    # Check if the request was successful
-    if [ $? -eq 0 ] && [ -s "$OUTPUT_FILE" ]; then
-        echo "Saved data to $OUTPUT_FILE ✅"
-    else
-        echo "Failed to fetch $POKEMON ❌"
-        echo "Error fetching $POKEMON at $(date)" >> pokemon_data/errors.txt
-    fi
-    
-    # Wait 1 second before next request (be nice to the API!)
-    # This prevents rate limiting
+    fetch_pokemon "$POKEMON"
     sleep 1
-    
 done
 
 echo ""
-echo "All done! Fetched ${#POKEMON_LIST[@]} Pokémon! 🎉"
+echo "Batch processing complete!"
