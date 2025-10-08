@@ -18,12 +18,12 @@ for json_file in *.json; do
         exit 1
     fi
     
-    # Extract name, height, and weight from JSON
+    # Extract name, height, and weight from JSON using sed
     # Height is in decimeters in the API, convert to meters (divide by 10)
     # Weight is in hectograms in the API, convert to kg (divide by 10)
-    name=$(grep -o '"name":"[^"]*' "$json_file" | cut -d'"' -f4)
-    height=$(grep -o '"height":[0-9]*' "$json_file" | cut -d':' -f2)
-    weight=$(grep -o '"weight":[0-9]*' "$json_file" | cut -d':' -f2)
+    name=$(sed -n 's/.*"name":"\([^"]*\)".*/\1/p' "$json_file" | head -1)
+    height=$(sed -n 's/.*"height":\([0-9]*\).*/\1/p' "$json_file")
+    weight=$(sed -n 's/.*"weight":\([0-9]*\).*/\1/p' "$json_file")
     
     # Convert height from decimeters to meters and weight from hectograms to kg
     if [ -n "$name" ] && [ -n "$height" ] && [ -n "$weight" ]; then
