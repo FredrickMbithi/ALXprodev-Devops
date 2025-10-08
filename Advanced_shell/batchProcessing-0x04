@@ -6,6 +6,9 @@ mkdir -p pokemon_data
 # List of Pokémon to fetch in parallel
 POKEMON_LIST=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 
+# Array to store background process IDs
+pids=()
+
 # Function to fetch one Pokémon
 fetch_pokemon() {
     local pokemon=$1
@@ -31,16 +34,39 @@ fetch_pokemon() {
     fi
 }
 
+# Cleanup function to kill any remaining processes
+cleanup() {
+    echo "Cleaning up background processes..."
+    for pid in "${pids[@]}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+            kill "$pid" 2>/dev/null
+        fi
+    done
+}
+
+# Set trap to cleanup on script exit or interrupt
+trap cleanup EXIT INT TERM
+
 echo "Starting parallel fetch for ${#POKEMON_LIST[@]} Pokémon..."
 echo ""
 
 # Start all fetches in parallel using background processes
 for POKEMON in "${POKEMON_LIST[@]}"; do
     fetch_pokemon "$POKEMON" &
+    pids+=($!)  # Save process ID
 done
+
+# Show running background jobs
+echo "Background jobs running:"
+jobs
 
 # Wait for all background processes to complete
 wait
 
 echo ""
 echo "All Pokémon fetched in parallel! 🚀"
+echo ""
+
+# Show completed jobs
+echo "Final job status:"
+jobs
